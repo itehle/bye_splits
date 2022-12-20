@@ -118,9 +118,7 @@ if pile_up:
         with open(outfile, 'wb') as f:
             pickle.dump(files, f)
     else:
-        infile = 'dpm_file_paths.pkl'
-        with open(infile, 'rb') as f:
-            files = pickle.load(f)
+        infile = '/data_CMS/cms/ehle/L1HGCAL/skim_photon_200PU_bc_stc_hadd.root'
 
     gen_trees = {'electron': 'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',
                  'photon':   'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',

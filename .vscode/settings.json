@@ -1,4 +1,6 @@
 {
+    "python.pythonPath": "/home/llr/cms/ehle/anaconda3/bin/python3.9",
+    "python.terminal.activateEnvironment": true,
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "array": "cpp",

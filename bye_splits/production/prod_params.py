@@ -26,7 +26,7 @@ threshold = 0.05
 reachedEE = 2 #0 converted photons; 1: photons that missed HGCAL; 2: photons that hit HGCAL
 
 if local:
-    base = '/data_CMS/cms/ehle/L1HGCAL/'
+    base = '/data_CMS/cms/ehle/L1HGCAL/skim_'
     file_ext = '_200PU_bc_stc_hadd'
     files = {'photon'   : base+'photon'+file_ext,
              'electron' : base+'electron'+file_ext}
@@ -58,5 +58,5 @@ if htcondor:
 else:
     out_dir = params.base_kw['BasePath']
 
-out_name = 'summ_{}_{}.hdf5'.format(particle, algo)
+out_name = 'summ_{}_{}_t3.hdf5'.format(particle, algo)
 algo_trees = [gen_tree]
