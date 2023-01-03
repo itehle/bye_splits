@@ -13,11 +13,11 @@ CLUSTER_ALGO="min_distance"
 SEED_WINDOW="1"
 SMOOTH_KERNEL="default"
 declare -a SELECTIONS=( "splits_only" "no_splits" "above_eta_2.7" "below_eta_2.7")
-declare -a REGIONS=( "Si" "ECAL" "HCAL" "MaxShower" "ExcludeMaxShower" )
+declare -a REGIONS=( "Si" "ECAL" "HCAL" "All" "MaxShower" "ExcludeMaxShower" )
 declare -a CLUSTER_ALGOS=( "min_distance" "max_energy" )
 declare -a SMOOTH_KERNELS=( "default" "flat_top" )
-SELECTION="splits_only"
-REGION="Si"
+SELECTION="below_eta_2.7"
+REGION="All"
 
 ### Argument parsing
 HELP_STR="Prints this help message."
@@ -208,8 +208,8 @@ fi
 ### Functions
 function run_parallel() {
 	#comm="parallel -j -1 python bye_splits/iterative_optimization.py --ipar {} --sel ${SELECTION} -n ${NEVENTS} --reg ${REGION} "
-  comm="python bye_splits/iterative_optimization.py --ipar ${ITER_PARS} --sel ${SELECTION} -n ${NEVENTS} --reg ${REGION} "
-  comm+="--cluster_algo ${CLUSTER_ALGO} --seed_window ${SEED_WINDOW} --smooth_kernel ${SMOOTH_KERNEL} "
+	comm="python bye_splits/iterative_optimization.py --ipar ${ITER_PARS[5]} --sel ${SELECTION} -n ${NEVENTS} --reg ${REGION} "
+  	comm+="--cluster_algo ${CLUSTER_ALGO} --seed_window ${SEED_WINDOW} --smooth_kernel ${SMOOTH_KERNEL} "
 	if [ ${DO_FILLING} -eq 0 ]; then
 		echo "Do not run the filling step."
 		comm+="--no_fill "
@@ -231,12 +231,15 @@ function run_parallel() {
 		comm+="-p "
 	fi
 
-	comm+="$@"
+	comm+="${@}"
 
-  echo "Running command: $comm"
+  	echo "Running command: $comm"
+  	#exit 1
 
 	[[ ${DRYRUN} -eq 1 ]] && echo ${comm} || ${comm}
 }
+
+run_parallel
 
 function run_plot() {
 	comm="python plot/meta_algorithm.py -m ${@} --sel ${SELECTION} --reg ${REGION} "
@@ -245,12 +248,12 @@ function run_plot() {
 }
 
 ### Only one job can reprocess the data, and it has to be sequential
-if [ ${REPROCESS} -eq 1 ]; then
-	run_parallel -r ::: ${ITER_PARS[0]}
-	run_parallel ::: ${ITER_PARS[@]:1}
-else
-	run_parallel ::: ${ITER_PARS[@]}
-fi
+#if [ ${REPROCESS} -eq 1 ]; then
+#	run_parallel -r ::: ${ITER_PARS[0]}
+#	run_parallel ::: ${ITER_PARS[@]:1}
+#else
+#	run_parallel ::: ${ITER_PARS[@]}
+#fi
 
 #run_plot "${ITER_PARS[*]}"
 

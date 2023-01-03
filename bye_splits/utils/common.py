@@ -141,7 +141,8 @@ def tc_base_selection(df, region, pos_endcap, range_rz):
 
 def dict_per_file(pars,file):
     # This will need to be changed eventually
-    addit = re.split('gen_cl3d_tc_|_ThresholdDummy',file)[1]
+    #addit = re.split('gen_cl3d_tc_|_ThresholdDummy',file)[1]
+    addit = re.split('new_algos/|.hdf5',file)[1]
 
     file_pars = {'opt': deepcopy(pars.opt_kw),
                  'fill': deepcopy(pars.fill_kw),
@@ -152,7 +153,8 @@ def dict_per_file(pars,file):
                  'energy': deepcopy(pars.energy_kw)}
 
     # Optimization pars
-    file_pars['opt']['InFile'] = '{}.hdf5'.format(file)
+    #file_pars['opt']['InFile'] = '{}.hdf5'.format(file)
+    file_pars['opt']['InFile'] = file
     file_pars['opt']['OptIn'] = '{}_{}'.format(pars.opt_kw['OptIn'],addit)
     file_pars['opt']['OptEnResOut'] = '{}_{}'.format(pars.opt_kw['OptEnResOut'],addit)
     file_pars['opt']['OptPosResOut'] = '{}_{}'.format(pars.opt_kw['OptPosResOut'],addit)
@@ -160,7 +162,8 @@ def dict_per_file(pars,file):
     pars.set_dictionary(file_pars['opt'])
 
     # Fill pars
-    file_pars['fill']['FillIn'] = file
+    #file_pars['fill']['FillIn'] = file
+    file_pars['fill']['FillIn'] = re.split('.hdf5', file)[0]
     file_pars['fill']['FillOutPlot'] = '{}_{}'.format(pars.fill_kw['FillOutPlot'],addit)
     file_pars['fill']['FillOutComp'] = '{}_{}'.format(pars.fill_kw['FillOutComp'],addit)
     file_pars['fill']['FillOut'] = '{}_{}'.format(pars.fill_kw['FillOut'],addit)

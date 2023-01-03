@@ -24,6 +24,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from subprocess import Popen, PIPE
 import pickle
 
+particle = 'electron'
 NbinsRz = 42
 NbinsPhi = 216
 MinROverZ = 0.076
@@ -100,6 +101,7 @@ def create_out_names(files,trees):
         if isinstance(files[key], str):
             files[key] = [files[key]]
         tree = trees[key]
+        #breakpoint()
         output_file_names[key] = ['gen_cl3d_tc_{}_{}_with_pt'.format(base_kw['FesAlgos'][0],re.split('.root|/',file)[-2]) for file in files[key]]
     return output_file_names
 
@@ -118,7 +120,10 @@ if pile_up:
         with open(outfile, 'wb') as f:
             pickle.dump(files, f)
     else:
-        infile = '/data_CMS/cms/ehle/L1HGCAL/skim_photon_200PU_bc_stc_hadd.root'
+        pu_base = '/data_CMS/cms/ehle/L1HGCAL/skim_'
+        name_ext = '200PU_bc_stc_hadd.root'
+        files = {'photon': pu_base+'photon'+name_ext, 'electron': pu_base+'electron'+name_ext, 'pion': pu_base+'pion'+name_ext}
+        infile = files[particle]
 
     gen_trees = {'electron': 'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',
                  'photon':   'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',
@@ -139,10 +144,14 @@ match_kw = set_dictionary(
       'CoeffAlgos': coef_dict,
       'Threshold': threshold}
 )
-
 # fill task
+file_name_dict = dict.fromkeys(files.keys(), None)
+for key in file_name_dict:
+    file_name_dict[key] = ["summ_PU200_{}.hdf5".format(key)]
+
 fill_kw = set_dictionary(
-    {'FillInFiles' : create_out_names(files, match_kw['GenTrees']),
+    {#'FillInFiles' : create_out_names(files, match_kw['GenTrees']),
+     'FillInFiles' : file_name_dict,
      'FillIn'      : None, # To be chosen during the fill process
      'FillOut'     : 'fill',
      'FillOutComp' : 'fill_comp',

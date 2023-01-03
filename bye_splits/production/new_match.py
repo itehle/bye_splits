@@ -1,12 +1,15 @@
 # coding: utf-8
+#!/usr/bin/env python
 
 _all_ = [ ]
 
 import os
 from pathlib import Path
 import sys
+import getopt
 parent_dir = os.path.abspath(__file__ + 2 * '/..')
 sys.path.insert(0, parent_dir)
+base_data_dir = "/data_CMS/cms/ehle/L1HGCAL"
 
 from pathlib import Path
 import numpy as np
@@ -18,18 +21,19 @@ import prod_params
 from utils import params
 
 def deltar(df):
-    df['deta']=df['cl3d_eta']-df['genpart_exeta']
-    df['dphi']=np.abs(df['cl3d_phi']-df['genpart_exphi'])
+
+    df['deta']=df['good_cl3d_eta']-df['good_genpart_exeta']
+    df['dphi']=np.abs(df['good_cl3d_phi']-df['good_genpart_exphi'])
     sel=df['dphi']>np.pi
     df['dphi']-=sel*(2*np.pi)
     return(np.sqrt(df['dphi']*df['dphi']+df['deta']*df['deta']))
     
 def matching(event):
     if event.matches.sum()==0:
-        return event.cl3d_pt==event.cl3d_pt.max()
+        return event.good_cl3d_pt==event.good_cl3d_pt.max()
     else:
         cond_a = event.matches==True
-        cond_b = event.cl3d_pt==event[cond_a].cl3d_pt.max()
+        cond_b = event.good_cl3d_pt==event[cond_a].good_cl3d_pt.max()
         return (cond_a&cond_b)
 
 def create_dataframes(files, algo_trees, gen_tree, reachedEE):
@@ -48,16 +52,17 @@ def create_dataframes(files, algo_trees, gen_tree, reachedEE):
     memsize_gen, memsize_tc = '128 MB', '64 MB'
     for filename in files:
         with uproot.open(filename + ':' + gen_tree) as data:
-            #print( data.num_entries_for(memsize, expressions=branches_tc) )
+
             for ib,batch in enumerate(data.iterate(branches_gen, step_size=memsize_gen,
-                                                   library='pd')):
+                                                library='pd')):
                 batch.set_index('event', inplace=True)
 
                 batches_gen.append(batch)
                 print('Step {}: +{} generated data processed.'.format(ib,memsize_gen), flush=True)
-                
+
+            
             for ib,batch in enumerate(data.iterate(branches_tc, step_size=memsize_tc,
-                                                   library='pandas')):
+                                                library='pandas')):
                 batch = batch[ ~batch['good_tc_layer'].isin(params.disconnectedTriggerLayers) ]
                 #convert all the trigger cell hits in each event to a list
                 batch = batch.groupby(by=['event']).aggregate(lambda x: list(x))
@@ -71,12 +76,13 @@ def create_dataframes(files, algo_trees, gen_tree, reachedEE):
     assert len(files)==1 #modify the following block otherwise
     for algo_name, algo_tree in algo_trees.items():
         with uproot.open(filename)[algo_tree] as tree:
-            df_algos[algo_name] = tree.arrays(branches_cl3d + ['cl3d_layer_pt'], library='pd')
+            #df_algos[algo_name] = tree.arrays(branches_cl3d + ['cl3d_layer_pt'], library='pd')
+            df_algos[algo_name] = tree.arrays(branches_cl3d, library='pd')
             df_algos[algo_name].reset_index(inplace=True)
             
             # Trick to expand layers pTs, which is a vector of vector
-            newcol = df_algos[algo_name].apply(lambda row: row.cl3d_layer_pt[row.subentry], axis=1)
-            df_algos[algo_name]['cl3d_layer_pt'] = newcol
+            #newcol = df_algos[algo_name].apply(lambda row: row.cl3d_layer_pt[row.subentry], axis=1)
+            #df_algos[algo_name]['cl3d_layer_pt'] = newcol
             df_algos[algo_name] = df_algos[algo_name].drop(['subentry', 'entry'], axis=1)
             
             # print(list(chain.from_iterable(tree.arrays(['cl3d_layer_pt'])[b'cl3d_layer_pt'].tolist())))
@@ -87,25 +93,31 @@ def create_dataframes(files, algo_trees, gen_tree, reachedEE):
 
     return (df_gen, df_algos, df_tc)
 
-def preprocessing(infile, outfile):
+def preprocessing(argv):
+    infile = ''
+    opts, args = getopt.getopt(argv, "hi:",["infile="])
+    for opt, arg in opts:
+        if opt == '-h':
+            print('python path/to/new_match.py --infile <input_file>')
+            sys.exit()
+        elif opt in ("-i", "--infile"):
+            infile = arg
+        else:
+            print("Please specify an input file.")
+
+
     gen, algo, tc = create_dataframes(infile,
                                       prod_params.algo_trees, prod_params.gen_tree,
                                       prod_params.reachedEE)
-    '''gen, algo, tc = create_dataframes(files,
-                                      prod_params.algo_trees, prod_params.gen_tree,
-                                      prod_params.reachedEE)'''
 
     algo_clean = {}
 
     for algo_name,df_algo in algo.items():
-        # consider positive endcap only for simplicity
-        algo_pos = df_algo[ df_algo['cl3d_eta']>0  ]
-
         #set the indices
-        algo_pos.set_index('event', inplace=True)
+        df_algo.set_index('event', inplace=True)
 
         #merging gen columns and cluster columns, keeping cluster duplicates (same event)
-        algo_pos_merged=gen.join(algo_pos, how='right', rsuffix='_algo').dropna()
+        algo_pos_merged=gen.join(df_algo, how='right', rsuffix='_algo').dropna()
 
         # compute deltar
         algo_pos_merged['deltar']=deltar(algo_pos_merged)
@@ -132,15 +144,16 @@ def preprocessing(infile, outfile):
     #save files to savedir in HDF
 
     #store = pd.HDFStore( Path(prod_params.out_dir) / prod_params.out_name, mode='w')
+    if not os.path.exists(base_data_dir+'/matched'):
+        match_dir = os.makedirs(base_data_dir+'/matched')
+    match_dir = base_data_dir+'/matched'
+    
+    outfile = match_dir+"/matched_"+infile
+
     store = pd.HDFStore(outfile, mode='w')
     for algo_name, df in algo_clean.items():
         store[algo_name] = df
     store.close()
         
 if __name__=='__main__':
-    files = prod_params.files
-    for particle, file in files.items():
-        if isinstance(file, str):
-            file = [file]
-        outfile = "{}/summ_PU200_{}.hdf5".format(str(prod_params.out_dir), particle)    
-        preprocessing(file, outfile)
+    preprocessing(sys.argv[1:])

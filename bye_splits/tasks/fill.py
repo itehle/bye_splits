@@ -24,6 +24,7 @@ def fill(pars, nevents, tc_map, debug=False, **kwargs):
         infill = common.fill_path(kwargs['FillIn'])
         simAlgoFiles[fe] = [ infill ]
 
+    breakpoint()
     for fe,files in simAlgoFiles.items():
         name = fe
         dfs = []

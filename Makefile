@@ -1,5 +1,6 @@
 CC = g++
-EXEC = produce.exe #basename must match the name of the *.cc file containing the main
+# EXEC = produce.exe #basename must match the name of the *.cc file containing the main
+EXEC = t3_produce.exe #basename must match the name of the *.cc file containing the main
 RM = rm -r
 
 BASEDIR := $(shell pwd)

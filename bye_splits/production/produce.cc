@@ -1,11 +1,30 @@
 #include <iostream>
-#include "include/skim.h"
+// #include "include/skim.h"
 
 #include <stdio.h>  // for printf()
 #include <stdlib.h> // for strtol()
 #include <errno.h>  // for errno
 #include <limits.h> // for INT_MIN and INT_MAX
 #include <string.h>  // for strlen
+
+std::string parseFileOption(int argc, char** argv) {
+  std::string fileName;
+  for (int i = 1; i < argc; i++) {
+    std::string arg = argv[i];
+    if (arg == "--file") {
+      if (i + 1 < argc) {
+        // The file name is the next argument
+        fileName = argv[i + 1];
+      } else {
+        // The file name was not provided
+        cerr << "Error: --file option requires a value" << endl;
+        exit(1);
+      }
+      break;
+    }
+  }
+  return fileName;
+}
 
 int convert_to_int(char** argv, int idx) {
   char* p;
@@ -29,6 +48,19 @@ int convert_to_int(char** argv, int idx) {
 
 //Run with ./produce.exe photon
 int main(int argc, char **argv) {
+
+  std::string infile = parseFileOption(argc, argv);
+
+  if (infile.empty()) {
+    std::cout << "\nNo file name provied" << endl;
+  }
+  else {
+    cout << "\nFile name: " << infile << endl;
+  }
+
+  return 0;
+
+  /*
   std::string dir = "/data_CMS/cms/ehle/L1HGCAL/";
   std::string tree_name = "FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple";
 
@@ -41,9 +73,10 @@ int main(int argc, char **argv) {
 
   //int nentries = convert_to_int(argv, 2); // argv only has one argument!
 
-  std::string infile = particle + "_200PU_bc_stc_hadd.root";
+  #std::string infile = particle + "_200PU_bc_stc_hadd.root";
   std::string outfile = "skim_" + infile;
   //skim(tree_name, dir + infile, dir + outfile, particle, nentries);
   skim(tree_name, dir + infile, dir + outfile, particle, 1);
   return 0;
+  */
 }

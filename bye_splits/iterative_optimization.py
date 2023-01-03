@@ -12,7 +12,7 @@ import tasks
 import utils
 from utils import params, common, parsing
 
-from plot.trigger_cells_occupancy import plot_trigger_cells_occupancy
+#from plot.trigger_cells_occupancy import plot_trigger_cells_occupancy
 
 import csv
 import argparse
@@ -72,7 +72,11 @@ def process_trigger_cell_geometry_data(region, selection,
     tcData_inv  = tcData[ ~subdetCond ]
 
     # save data for optimization task
-    which = re.split('gen_cl3d_tc_|_ThresholdDummy',kw['InFile'])[1]
+
+    #which = re.split('gen_cl3d_tc_|_ThresholdDummy',kw['InFile'])[1]
+    #inoptfile = common.fill_path('{}_{}'.format(kw['OptIn'],which), sel=selection, reg=region)
+
+    which = re.split(r'(new_algos/|.hdf5)', kw['InFile'])[-3]
     inoptfile = common.fill_path('{}_{}'.format(kw['OptIn'],which), sel=selection, reg=region)
 
     with h5py.File(inoptfile, mode='w') as store:
@@ -96,7 +100,7 @@ def process_trigger_cell_geometry_data(region, selection,
 def optimization(pars, **kw):
     outresen = common.fill_path(kw['OptIn'], sel=pars['sel'], reg=pars['reg'])
     store_in  = h5py.File(outresen, mode='r')
-    plot_obj = utils.plotter.Plotter(**params.opt_kw)
+    #plot_obj = utils.plotter.Plotter(**params.opt_kw)
     mode = 'variance'
     window_size = 3
 
@@ -138,14 +142,13 @@ def optimization(pars, **kw):
         run_algorithm = True #this flag cna be used to apply the algo to a subset of the rzslices
 
         if run_algorithm:
-            plot_obj.reset()
+            #plot_obj.reset()
 
             boundshift = window_size - 1
             ncellstot = sum(lb)
             lastidx = kw['NbinsPhi']-1
 
-            plot_obj.save_orig_data(data=copy(lb), data_type='bins',
-                                    boundary_sizes=0 )
+            #plot_obj.save_orig_data(data=copy(lb), data_type='bins', boundary_sizes=0)
 
             # initial differences for stopping criterion
             lb_orig2 = lb[:]
@@ -330,13 +333,13 @@ def optimization(pars, **kw):
             df.loc[cond4, 'arc'] = arcdist_f(df.phi_old, df.phi_new-2*np.pi)
             df.loc[cond4, 'arc'] = arcdist_f(df.phi_old, df.phi_new-2*np.pi)
 
-            plot_obj.save_gen_data(lb, boundary_sizes=0, data_type='bins')
+            '''plot_obj.save_gen_data(lb, boundary_sizes=0, data_type='bins')
             plot_obj.save_phi_distances(phi_dist=df.distance,
                                        eucl_dist=eucl_dist,
                                        arc_dist=df.arc)
             plot_obj.save_iterative_phi_tab(nonzero_ratio=nonzero_ratio,
                                            ncellstot=ncellstot )
-            plot_obj.save_iterative_bin_tab()
+            plot_obj.save_iterative_bin_tab()'''
 
         else: # if run_algorithm:
             df = pd.DataFrame(dict(phi_old=phi_old,
@@ -360,10 +363,10 @@ def optimization(pars, **kw):
 
         # end loop over the layers
 
-    plot_name = common.fill_path('tc_moves', ext='html', **pars)
+    '''plot_name = common.fill_path('tc_moves', ext='html', **pars)
     plot_obj.plot_iterative(plot_name=plot_name,
                             tab_names = [''+str(x) for x in range(len(ldata_main))],
-                            show_html=False)
+                            show_html=False)'''
 
     if pars['reg'] != 'All':
         assert not set(df_total.id) & set(df_inv_total.id)
@@ -403,9 +406,11 @@ if __name__ == "__main__":
     simDataPaths = [[os.path.join(params.base_kw['BasePath'], infile) for infile in input_files[key]] for key in input_files.keys()]
     simDataPaths = list(itertools.chain(*simDataPaths))
 
+    FLAGS.process = True
     if FLAGS.process:
         for path in simDataPaths:
             params.opt_kw['InFile'] = path
+            breakpoint()
             process_trigger_cell_geometry_data(region=FLAGS.reg,
                                            selection=FLAGS.sel, **params.opt_kw)
 
@@ -421,7 +426,8 @@ if __name__ == "__main__":
 
     for path in simDataPaths:
         # Get file addition
-        file = re.split('gen_cl3d_tc_|_ThresholdDummy',path)[1]
+        #file = re.split('gen_cl3d_tc_|_ThresholdDummy',path)[1]
+        file = re.split('new_algos/|.hdf5',path)[1]
         outcsv = common.fill_path('{}_{}'.format(params.opt_kw['OptCSVOut'],file), ext='csv', **pars_d)
         outresen  = common.fill_path('{}_{}'.format(params.opt_kw['OptEnResOut'],file),  **pars_d)
         outrespos = common.fill_path('{}_{}'.format(params.opt_kw['OptPosResOut'],file), **pars_d)
@@ -436,6 +442,8 @@ if __name__ == "__main__":
 
             # Set file specific parameters
             file_pars = common.dict_per_file(params,path)
+
+            breakpoint()
 
             tc_map = optimization(pars_d, **file_pars['opt'])
 
