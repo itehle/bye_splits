@@ -37,26 +37,6 @@ pair<string, string> parseFileOptions(int argc, char** argv) {
   return make_pair(infileName, outfileName);
 }
 
-/*
-int convert_to_int(char** argv, int idx) {
-  char* p;
-  errno = 0; // not 'int errno', because the '#include' already defined it
-  
-  long arg = strtol(argv[idx], &p, 10);
-  if (*p != '\0' || errno != 0) {
-	return 1; // In main(), returning non-zero means failure
-  }
-
-  if (arg < INT_MIN || arg > INT_MAX) {
-	return 1;
-  }
-  int arg_int = arg;
-
-  // Everything went well, print it as a regular number plus a newline
-  return arg_int;
-}
-*/
-
 string file_from_path(const string& path)
 {
   size_t pos = path.find_last_of("/");
@@ -91,12 +71,6 @@ int main(int argc, char **argv) {
   string tree_name = "FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple";
   
   string out_dir = data_dir+'/'+particle+'/';
-
-  /*
-  if (strlen(argv[1]) == 0) {
-	return 1; // empty string
-  }
-  */
 
   skim(tree_name, infile, out_dir + outfile, particle, 1);
   return 0;
