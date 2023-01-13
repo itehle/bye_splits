@@ -46,9 +46,12 @@ def setup_batches(files, files_per_batch=10):
 
 def run_batch(script, batch, particle):
     comm = "{}{}".format(submit_dir, script)
-    args = lambda batch, part: "--batch {} --particle {}".format(batch, part)
+    batch_arr = "${batch[@]}"
+    args = lambda batch, part: '--batch "{}" --particle {}'.format(batch_arr, part)
 
-    print(subprocess.run([comm, args(batch, particle)], shell=True))
+    run_comm = comm + " " + args(batch, particle)
+
+    batch_process = subprocess.run([run_comm])
 
 def path_batches(directory, files_per_batch=10):
     my_paths = [path for path in os.listdir(directory) if ".root" in path]
@@ -61,18 +64,24 @@ def path_batches(directory, files_per_batch=10):
 def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine):
     if not os.path.exists(phot_out_path):
         # The setup script will create all of the out directories, so if the photon directory isn't there, neither should the others
-        print(subprocess.run(["{}{}setup.sh".format(working_dir,submit_dir)], shell=True))
+        setup_process = subprocess.run(["{}{}setup.sh".format(working_dir,submit_dir)], shell=True)
 
     # Save full paths to ntuple files and break them into batches (size <=10 files each by default)
     phot_batches = setup_batches(phot_files)
     el_batches = setup_batches(el_files)
 
+    print ('Sending {0} photon jobs on {1}'.format(len(phot_batches), queue+'@{}'.format(machine)))
+    print ('---------------')
+
     # Run the skimming step on each batch; the new, skimmed files will be placed in {particle}_out_path/
     for batch in phot_batches:
-        run_batch("skim.sh", batch, "photon")
+        run_batch("t3skim.sh", batch, "photon")
+
+    print ('Sending {0} electron jobs on {1}'.format(len(el_batches), queue+'@{}'.format(machine)))
+    print ('===============')
 
     for batch in el_batches:
-        run_batch("skim.sh", batch, "electron")
+        run_batch("t3skim.sh", batch, "electron")
 
     skimmed_phot_batches = path_batches(phot_out_path)
     skimmed_el_batches = path_batches(el_out_path)
@@ -94,17 +103,17 @@ def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine)
     matched_els = [path for path in os.listdir(el_match_out)]
 
     # Initialize command for combining skimmed, matched root files
-    phot_hadd_comm="hadd -k -j {}photon_skim_match_hadd.root {}".format(phot_match_out, matched_phots[0])
-    el_hadd_comm="hadd -k -j {}electron_skim_match_hadd.root {}".format(el_match_out, matched_els[0])
+    phot_hadd_comm="hadd -k -j {}photon_skim_match_hadd.root".format(phot_match_out)
+    el_hadd_comm="hadd -k -j {}electron_skim_match_hadd.root".format(el_match_out)
 
     # Each file is appended to the command before it is called, so all are combined at once
-    for file in matched_phots[1:]:
+    for file in matched_phots:
         phot_hadd_comm += " " + phot_match_out + file
-    print(subprocess.run([phot_hadd_comm], shell=True))
+    phot_hadd = subprocess.run([phot_hadd_comm])
 
-    for file in matched_els[1:]:
+    for file in matched_els:
         el_hadd_comm += " " + el_match_out + file
-    print(subprocess.run([el_hadd_comm], shell=True))
+    el_hadd = subprocess.run([el_hadd_comm])
 
 if __name__=='__main__':
     launch_jobs(phot_files=phot_files, el_files=el_files)

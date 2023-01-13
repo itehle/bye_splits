@@ -26,16 +26,16 @@ case $key in
 esac
 done
 
-BATCH = "${batch}"
-PARTICLE = "${particle}"
+BATCH="${batch}"
+PARTICLE="${particle}"
 
 echo "Matching photon files."
 for file in $BATCH
 do
-  if [ $PARTICLE == "photon" ]
+  if [ $PARTICLE == "photon" ]; then
     file_path="${phot_out_path}${file}"
     python bye_splits/production/new_match.py --infile $file_path
-  elif [ $PARTICLE == "electron" ]
+  elif [ $PARTICLE == "electron" ]; then
     file_path="${el_out_path}${file}"
     python bye_splits/production/new_match.py --infile $file_path
   else
