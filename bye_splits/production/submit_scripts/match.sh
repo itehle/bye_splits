@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Project Directory
-cd /home/llr/cms/ehle/git/bye_splits_new
+# Working Directory
+work_dir='/grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new/'
+prod_dir=${work_dir}'bye_splits/production/'
+
+cd $work_dir
+
+export PATH=$PATH:$work_dir
+export PATH=$PATH:$prod_dir
 
 # Output path for skimmed, matched, and combined files
 out_path='/data_CMS/cms/ehle/L1HGCAL/'
@@ -16,6 +22,7 @@ key="$1"
 
 case $key in
     --batch)
+    IFS=' ' read -r -a BATCH <<< "$2"#
     shift # past argument
     shift # past value
     ;;
@@ -26,11 +33,8 @@ case $key in
 esac
 done
 
-BATCH="${batch}"
-PARTICLE="${particle}"
-
 echo "Matching photon files."
-for file in $BATCH
+for file in "${BATCH[@]}"
 do
   if [ $PARTICLE == "photon" ]; then
     file_path="${phot_out_path}${file}"

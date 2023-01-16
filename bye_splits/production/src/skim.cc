@@ -1,9 +1,6 @@
 #include "include/skim.h"
 
 void skim(string tn, string inf, string outf, string particle, int nentries) {
-
-  std::cout << "\nTree Name: " << tn << "\n\n";
-  std::cout << "File Name: " << inf << "\n\n";
   
   YAML::Node config = YAML::LoadFile("bye_splits/production/prod_params.yaml");
   vector<int> vec;

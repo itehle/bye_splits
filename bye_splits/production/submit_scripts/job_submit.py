@@ -1,11 +1,14 @@
 #!/usr/bin/env python
+
 import os
 import subprocess
+import time
 
 # Specify t3 machine and proxy certificate
 machine = "llrt3.in2p3.fr"
 proxy = "~/.t3/proxy.cert"
 queue = "short"
+local = False
 
 working_dir = "/grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new/"
 
@@ -26,6 +29,7 @@ el_out_path="{}electron/".format(out_path)
 phot_match_out = "{}matched/".format(phot_out_path)
 el_match_out = "{}matched/".format(el_out_path)
 
+# The setup script saves the file paths on /dpm to .txt files
 phot_files = "{}photon_ntuples.txt".format(phot_out_path)
 el_files = "{}electron_ntuples.txt".format(el_out_path)
 
@@ -39,19 +43,21 @@ def setup_batches(files, files_per_batch=10):
     with open(files, "r") as File:
         Lines = File.readlines()
 
-        # readlines() keeps the explicit /n character, strip_trail removes this
+        # readlines() keeps the explicit "/n" character, strip_trail removes this
         batches = strip_trail(my_batches(Lines, files_per_batch))
 
     return batches
 
-def run_batch(script, batch, particle):
+def run_batch(script, batch, particle, local=local):
     comm = "{}{}".format(submit_dir, script)
-    batch_arr = "${batch[@]}"
-    args = lambda batch, part: '--batch "{}" --particle {}'.format(batch_arr, part)
+    # Create string from list of files, i.e. [file_1, file_2, ...] would become 'file_1 file_2 ...'
+    # This string is then parsed by the bash script(s) so that it can process each file individually
+    batch_str = ' '.join(batch)
 
-    run_comm = comm + " " + args(batch, particle)
-
-    batch_process = subprocess.run([run_comm])
+    if not local:
+        batch_process = subprocess.run([sub_comm, comm, "--batch", batch_str, "--particle", particle])
+    else:
+        batch_process = subprocess.run([comm, "--batch", batch_str, "--particle", particle])
 
 def path_batches(directory, files_per_batch=10):
     my_paths = [path for path in os.listdir(directory) if ".root" in path]
@@ -74,6 +80,7 @@ def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine)
     print ('---------------')
 
     # Run the skimming step on each batch; the new, skimmed files will be placed in {particle}_out_path/
+    # Ran the first batch locally as a test, so starting from second batch
     for batch in phot_batches:
         run_batch("t3skim.sh", batch, "photon")
 
@@ -86,34 +93,43 @@ def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine)
     skimmed_phot_batches = path_batches(phot_out_path)
     skimmed_el_batches = path_batches(el_out_path)
 
-    # Create matching directo
+    # Create matching directories
     if not os.path.exists(phot_match_out):
         os.makedirs(phot_match_out)
     if not os.path.exists(el_match_out):
         os.makedirs(el_match_out)
 
     # Run the matching step on each (skimmed) batch
-    for batch in skimmed_phot_batches:
-        run_batch("match.sh", batch, "photon")
+        for batch in skimmed_phot_batches:
+            run_batch("match.sh", batch, "photon")
 
-    for batch in skimmed_el_batches:
-        run_batch("match.sh", batch, "electron")
+        for batch in skimmed_el_batches:
+            run_batch("match.sh", batch, "electron")
 
-    matched_phots = [path for path in os.listdir(phot_match_out)]
-    matched_els = [path for path in os.listdir(el_match_out)]
+    # It's unclear if they will try to run the matching step before the files exist, so this block is written just in case
+    ##########################################################################################################################
+    ''' while not os.path.exists(phot_match_out+'skim_photon_ntuple_1.root'):
+        time.sleep(1)
 
-    # Initialize command for combining skimmed, matched root files
-    phot_hadd_comm="hadd -k -j {}photon_skim_match_hadd.root".format(phot_match_out)
-    el_hadd_comm="hadd -k -j {}electron_skim_match_hadd.root".format(el_match_out)
+    if os.path.exists(phot_match_out+'skim_photon_ntuple_1.root'):
+        # Run the matching step on each (skimmed) batch
+        for batch in skimmed_phot_batches:
+            run_batch("match.sh", batch, "photon")
 
-    # Each file is appended to the command before it is called, so all are combined at once
-    for file in matched_phots:
-        phot_hadd_comm += " " + phot_match_out + file
-    phot_hadd = subprocess.run([phot_hadd_comm])
+        for batch in skimmed_el_batches:
+            run_batch("match.sh", batch, "electron")
 
-    for file in matched_els:
-        el_hadd_comm += " " + el_match_out + file
-    el_hadd = subprocess.run([el_hadd_comm])
+        matched_phots = [path for path in os.listdir(phot_match_out)]
+        matched_els = [path for path in os.listdir(el_match_out)]'''
+
+    ##########################################################################################################################
+    matched_phots = [path for path in os.listdir(phot_match_out) if ".root" in path]
+    matched_els = [path for path in os.listdir(el_match_out) if ".root" in path]
+
+    # While the skimming and matching step are broken into batches, i.e. original_list = [list_1=[file_1,file_2,...], list_2=[file_i, file_i+1, ...], ...]
+    # The combine step will assume the "batch" is the entire list
+    run_batch("combine.sh",matched_phots,"photon")
+    run_batch("comine.sh",matched_els,"electron")
 
 if __name__=='__main__':
     launch_jobs(phot_files=phot_files, el_files=el_files)

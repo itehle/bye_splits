@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Working Directory
-cd /grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new
-#prod_dir="bye_splits/production/"
+work_dir='/grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new/'
+prod_dir=${work_dir}'bye_splits/production/'
 
-# Base paths to root files on /dpm
-photon_base_path='root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/lportale/DoublePhoton_FlatPt-1To100/GammaGun_Pt1_100_PU200_HLTSummer20ReRECOMiniAOD_2210_BCSTC-FE-studies_v3-29-1_realbcstc4/221102_143035/0000/'
-electron_base_path='root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/lportale/DoubleElectron_FlatPt-1To100/ElectronGun_Pt1_100_PU200_HLTSummer20ReRECOMiniAOD_2210_BCSTC-FE-studies_v3-29-1_realbcstc4/221102_102633/0000/'
+cd $work_dir
+
+export PATH=$PATH:$work_dir
+export PATH=$PATH:$prod_dir
 
 while [[ $# -gt 0 ]]
 do
@@ -14,30 +15,60 @@ key="$1"
 
 case $key in
     --batch)
+    IFS=' ' read -r -a BATCH <<< "$2"
     shift # past argument
     shift # past value
     ;;
     --particle)
+    PARTICLE="$2"
     shift
     shift
     ;;
 esac
 done
 
-BATCH="${batch}"
-PARTICLE="${particle}"
+bar_size=40
+bar_char_done="#"
+bar_char_todo="-"
+bar_percentage_scale=2
 
+function show_progress {
+    current="$1"
+    total="$2"
+
+    # calculate the progress in percentage 
+    percent=$(bc <<< "scale=$bar_percentage_scale; 100 * $current / $total" )
+    # The number of done and todo characters
+    done=$(bc <<< "scale=0; $bar_size * $percent / 100" )
+    todo=$(bc <<< "scale=0; $bar_size - $done" )
+
+    # build the done and todo sub-bars
+    done_sub_bar=$(printf "%${done}s" | tr " " "${bar_char_done}")
+    todo_sub_bar=$(printf "%${todo}s" | tr " " "${bar_char_todo}")
+
+    # output the bar
+    echo -ne "\rProgress : [${done_sub_bar}${todo_sub_bar}] ${percent}%"
+
+    if [ $total -eq $current ]; then
+        echo -e "\nDONE"
+    fi
+}
+
+progress_len=${#BATCH[@]}
 # Skim ntuples
-echo  "Skimming files."
-for file in $BATCH
+echo  "Skimming ${progress_len} files."
+for i in "${!BATCH[@]}"
 do
+  file=${BATCH[$i]}
+
   if [ $PARTICLE == "photon" ]; then
-    file_path="${photon_base_path}${file}"
-    .bye_splits/production/t3_produce.exe --infile $file_path --particle photon
+    ./t3_produce.exe --infile $file --particle photon
   elif [ $PARTICLE == "electron" ]; then
     file_path="${electron_base_path}${file}"
-    .bye_splits/production/t3_produce.exe --infile $file_path --particle electron
+    ./t3_produce.exe --infile $file --particle electron
   else
     echo "${PARTICLE} is not currently supported for the --particle argument. The options are 'photon' and 'electron'."
   fi
+
+  show_progress $i $progress_len
 done

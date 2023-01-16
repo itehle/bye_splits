@@ -44,20 +44,32 @@ string file_from_path(const string& path)
   return path.substr(pos + 1);
 }
 
-//Run with ./produce.exe photon
+//Run with ./t3_produce --infile <file> --particle <particle>
 int main(int argc, char **argv) {
 
   pair<string, string> fileNames = parseFileOptions(argc, argv);
   
-  string infile = fileNames.first;
+  string path = fileNames.first;
   string particle = fileNames.second;
-  string outfile = "skim_"+particle+"_"+file_from_path(infile);
+  string file = file_from_path(path);
+  string outfile = "skim_"+particle+"_"+file;
 
+  string data_dir = "/data_CMS/cms/ehle/L1HGCAL/";
+  string tree_name = "FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple";
+  
+  string out_dir = data_dir+particle+'/';
+
+  /*
+  cout << "\nIn Path: " << path << "\nTree: " << tree_name << "\nOut Path: " << out_dir+outfile << "\nParticle: " << particle << "\n\n";
+
+  exit( 0 );
+
+  
   if (fileNames.first.empty()) {
     cout << "\nNo input file name provided." << endl;
   }
   else {
-    cout << "\nInput file name: " << infile << endl;
+    cout << "\nInput file name: " << path << endl;
   }
 
   if (fileNames.second.empty()) {
@@ -66,13 +78,9 @@ int main(int argc, char **argv) {
   else {
     cout << "\nOutput file name: " << outfile << endl;
   }
+  */
 
-  string data_dir = "/data_CMS/cms/ehle/L1HGCAL/";
-  string tree_name = "FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple";
-  
-  string out_dir = data_dir+'/'+particle+'/';
-
-  skim(tree_name, infile, out_dir + outfile, particle, 1);
+  skim(tree_name, path, out_dir + outfile, particle, 1);
   return 0;
   
 }

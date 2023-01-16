@@ -98,7 +98,7 @@ def preprocessing(argv):
     opts, args = getopt.getopt(argv, "hi:",["infile="])
     for opt, arg in opts:
         if opt == '-h':
-            print('python path/to/new_match.py --infile <input_file>')
+            print('Usage: python path/to/new_match.py --infile <input_file>')
             sys.exit()
         elif opt in ("-i", "--infile"):
             infile = arg
