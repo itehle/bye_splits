@@ -59,27 +59,6 @@ int main(int argc, char **argv) {
   
   string out_dir = data_dir+particle+'/';
 
-  /*
-  cout << "\nIn Path: " << path << "\nTree: " << tree_name << "\nOut Path: " << out_dir+outfile << "\nParticle: " << particle << "\n\n";
-
-  exit( 0 );
-
-  
-  if (fileNames.first.empty()) {
-    cout << "\nNo input file name provided." << endl;
-  }
-  else {
-    cout << "\nInput file name: " << path << endl;
-  }
-
-  if (fileNames.second.empty()) {
-    cout << "\nNo particle provided." << endl;
-  }
-  else {
-    cout << "\nOutput file name: " << outfile << endl;
-  }
-  */
-
   skim(tree_name, path, out_dir + outfile, particle, 1);
   return 0;
   

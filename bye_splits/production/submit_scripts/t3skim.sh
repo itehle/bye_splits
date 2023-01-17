@@ -6,8 +6,8 @@ prod_dir=${work_dir}'bye_splits/production/'
 
 cd $work_dir
 
-export PATH=$PATH:$work_dir
-export PATH=$PATH:$prod_dir
+export PATH=$PATH:$work_dir:$prod_dir
+#export PATH=$PATH:$prod_dir
 
 while [[ $# -gt 0 ]]
 do

@@ -100,36 +100,19 @@ def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine)
         os.makedirs(el_match_out)
 
     # Run the matching step on each (skimmed) batch
-        for batch in skimmed_phot_batches:
-            run_batch("match.sh", batch, "photon")
+    for batch in skimmed_phot_batches:
+        run_batch("match.sh", batch, "photon")
 
-        for batch in skimmed_el_batches:
-            run_batch("match.sh", batch, "electron")
+    for batch in skimmed_el_batches:
+        run_batch("match.sh", batch, "electron")
 
-    # It's unclear if they will try to run the matching step before the files exist, so this block is written just in case
-    ##########################################################################################################################
-    ''' while not os.path.exists(phot_match_out+'skim_photon_ntuple_1.root'):
-        time.sleep(1)
-
-    if os.path.exists(phot_match_out+'skim_photon_ntuple_1.root'):
-        # Run the matching step on each (skimmed) batch
-        for batch in skimmed_phot_batches:
-            run_batch("match.sh", batch, "photon")
-
-        for batch in skimmed_el_batches:
-            run_batch("match.sh", batch, "electron")
-
-        matched_phots = [path for path in os.listdir(phot_match_out)]
-        matched_els = [path for path in os.listdir(el_match_out)]'''
-
-    ##########################################################################################################################
     matched_phots = [path for path in os.listdir(phot_match_out) if ".root" in path]
     matched_els = [path for path in os.listdir(el_match_out) if ".root" in path]
 
     # While the skimming and matching step are broken into batches, i.e. original_list = [list_1=[file_1,file_2,...], list_2=[file_i, file_i+1, ...], ...]
     # The combine step will assume the "batch" is the entire list
     run_batch("combine.sh",matched_phots,"photon")
-    run_batch("comine.sh",matched_els,"electron")
+    run_batch("combine.sh",matched_els,"electron")
 
 if __name__=='__main__':
     launch_jobs(phot_files=phot_files, el_files=el_files)
