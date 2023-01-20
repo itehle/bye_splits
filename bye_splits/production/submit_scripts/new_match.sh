@@ -23,26 +23,26 @@ key="$1"
 case $key in
     --batch)
     IFS=' ' read -r -a BATCH <<< "$2"#
-    shift 2
+    shift # past argument
+    shift # past value
     ;;
     --particle)
-    PARTICLE="$2"
-    shift 2
+    shift
+    shift
     ;;
 esac
 done
 
 echo "Matching photon files."
-for path in "${BATCH[@]}"
+for file in "${BATCH[@]}"
 do
-  file=$(basename $path)
-  echo -e "\nMatching file: ${phot_out_path}skim_${PARTICLE}_${file}"
   if [ $PARTICLE == "photon" ]; then
-    file_path="${phot_out_path}skim_${PARTICLE}_${file}"
+    file_path="${phot_out_path}${file}"
+    python bye_splits/production/new_match.py --infile $file_path
   elif [ $PARTICLE == "electron" ]; then
-    file_path="${el_out_path}skim_${PARTICLE}_${file}"
+    file_path="${el_out_path}${file}"
+    python bye_splits/production/new_match.py --infile $file_path
   else
     echo "${PARTICLE} is not currently supported for the --particle argument. The options are 'photon' and 'electron'."
   fi
-  python bye_splits/production/new_match.py --infile $file_path
 done

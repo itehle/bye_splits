@@ -14,6 +14,10 @@ el_match_out="${el_out_path}matched/"
 phot_hadd_comm="hadd -k -j ${phot_match_out}skim_photon_match_hadd.root"
 el_hadd_comm="hadd -k -j ${el_match_out}skim_electron_match_hadd.root"
 
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
 case $key in
     --batch)
     IFS=' ' read -r -a BATCH <<< "$2"
@@ -26,23 +30,43 @@ case $key in
     shift
     ;;
 esac
+done
 
-run_hadd() {
-    if [ $PARTICLE == "photon" ]; then
-        for file in "${BATCH[@]}"
-        do
-            phot_hadd_comm+=" ${file}"
-        done
-    elif [ $PARTICLE == "electron" ]; then
-        for file in "${BATCH[@]}"
-        do
-            el_hadd_comm+=" $file}"
-        done
-    else
-        echo "Usage: combine.sh --batch <space_seperated_string_of_batch> --particle <particle_name>"
-        exit 0
-    fi
-}
+if [ $PARTICLE == "photon" ]; then
+    for file in "${BATCH[@]}"
+    do
+        phot_hadd_comm+=" ${file}"
+    done
+elif [ $PARTICLE == "electron" ]; then
+    for file in "${BATCH[@]}"
+    do
+        el_hadd_comm+=" ${file}"
+    done
+else
+    echo "Usage: combine.sh --batch <space_seperated_string_of_batch> --particle <particle_name>"
+    exit 0
+fi
 
-run_hadd
+eval " $el_hadd_comm"
+
+#run_hadd () {
+#    if [ $PARTICLE == "photon" ]; then
+#        for file in "${BATCH[@]}"
+#        do
+#            phot_hadd_comm+=" ${file}"
+#        done
+#   elif [ $PARTICLE == "electron" ]; then
+#        for file in "${BATCH[@]}"
+#        do
+#            el_hadd_comm+=" ${file}"
+#        done
+#    else
+#        echo "Usage: combine.sh --batch <space_seperated_string_of_batch> --particle <particle_name>"
+#        exit 0
+#    fi
+#
+#    echo $run_hadd
+#}
+
+#run_hadd
 

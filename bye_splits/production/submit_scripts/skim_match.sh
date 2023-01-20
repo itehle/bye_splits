@@ -5,7 +5,7 @@ work_dir='/grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new/'
 prod_dir=${work_dir}'bye_splits/production/'
 
 data_dir="/data_CMS/cms/ehle/L1HGCAL/"
-photon_base_bath="${data_dir}photon/"
+photon_base_path="${data_dir}photon/"
 electron_base_path="${data_dir}electron/"
 
 cd $work_dir
@@ -29,17 +29,23 @@ esac
 done
 
 # Skim ntuples
-for file in "${BATCH[@]}"
+for path in "${BATCH[@]}"
 do
-
+  file=$(basename $path)
   if [ $PARTICLE == "photon" ]; then
-    file_path="${photon_base_bath}${file}"
-    ./t3_produce.exe --infile $file --particle photon
+    skimmed_file="${photon_base_path}skim_${PARTICLE}_${file}"
+    if ! [ -f $skimmed_file ]; then # Check that skimmed file doesn't already exist
+      ./t3_produce.exe --infile $path --particle photon
+    fi
   elif [ $PARTICLE == "electron" ]; then
-    file_path="${electron_base_path}${file}"
-    ./t3_produce.exe --infile $file --particle electron
+    skimmed_file="${electron_base_path}skim_${PARTICLE}_${file}"
+    if ! [ -f $skimmed_file ]; then
+      ./t3_produce.exe --infile $path --particle electron
+    fi
   else
     echo "${PARTICLE} is not currently supported for the --particle argument. The options are 'photon' and 'electron'."
   fi
-
+  if ! [ -f $matched_file ]; then # Check that matched file doesn't already exist
+    python bye_splits/production/new_match.py --infile $skimmed_file
+  fi
 done

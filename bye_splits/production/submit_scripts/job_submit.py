@@ -1,33 +1,32 @@
 #!/usr/bin/env python
 
+# Simple script for testing the launching of bash scripts and job submission on the t3 clusters
 import os
+import sys
+from datetime import datetime
+
+parent_dir = os.path.abspath(__file__ + 3*'../')
+sys.path.insert(0, parent_dir)
+
 import subprocess
-import time
+import optparse
 
 # Specify t3 machine and proxy certificate
-machine = "llrt3.in2p3.fr"
 proxy = "~/.t3/proxy.cert"
 queue = "short"
-local = False
-
-working_dir = "/grid_mnt/vol_home/llr/cms/ehle/git/bye_splits_new/"
-
-# Path to submit scripts
-submit_dir = "{}bye_splits/production/submit_scripts/".format(working_dir)
-
-# Output path for skimmed, matched, and combined files
-out_path='/data_CMS/cms/ehle/L1HGCAL/'
 
 # Submit command
-sub_comm = "/opt/exp_soft/cms/t3/t3submit"
+sub_comm = ["/opt/exp_soft/cms/t3/t3submit"]
 
-# Output paths for skimmed ntuples
-phot_out_path="{}photon/".format(out_path)
-el_out_path="{}electron/".format(out_path)
+home_dir = "/grid_mnt/vol_home/llr/cms/ehle/"
 
-# Output paths for matched ntuples after the skimming has been done
-phot_match_out = "{}matched/".format(phot_out_path)
-el_match_out = "{}matched/".format(el_out_path)
+work_dir = "{}git/bye_splits_new/".format(home_dir)
+submit_dir = "{}bye_splits/production/submit_scripts/".format(work_dir)
+
+data_dir = "/data_CMS/cms/ehle/L1HGCAL/"
+
+phot_out_path="{}photon/".format(data_dir)
+el_out_path="{}electron/".format(data_dir)
 
 # The setup script saves the file paths on /dpm to .txt files
 phot_files = "{}photon_ntuples.txt".format(phot_out_path)
@@ -48,71 +47,141 @@ def setup_batches(files, files_per_batch=10):
 
     return batches
 
-def run_batch(script, batch, particle, local=local):
-    comm = "{}{}".format(submit_dir, script)
-    # Create string from list of files, i.e. [file_1, file_2, ...] would become 'file_1 file_2 ...'
-    # This string is then parsed by the bash script(s) so that it can process each file individually
-    batch_str = ' '.join(batch)
+def prepare_configs(batches, data_dir):
+    for i in range(len(batches)):
+        config_file_name = '{0}configs/{1}_cfg.py'.format(data_dir, i)
+        if os.path.exists(config_file_name):
+            os.remove(config_file_name)
+        with open(config_file_name, 'w') as param:
+            print('files={}\n'.format(batches[i]), file=param)
+            print('output_file_name="{0}{1}.txt"'.format(data_dir, i), file=param)
+
+def prepare_submit(particle, batches, data_dir):
+    for i, batch in enumerate(batches):
+        batch_str = ' '.join(batch)
+        sub_file_name = '{0}jobs/skim_match_{1}.sub'.format(data_dir, i)
+        config_file_name = '{0}_cfg.py'.format(i)
+        if os.path.exists(sub_file_name):
+            os.remove(sub_file_name)
+        with open(sub_file_name, 'w') as sub_file:
+            print('#! /bin/bash', file=sub_file)
+            print('Universe=grid', file=sub_file)
+            print('uname -a', file=sub_file)
+            print('python --version', file=sub_file)
+            print('which python', file=sub_file)
+            print('cd', data_dir+'logs', file=sub_file)
+            print('conda init bash',file=sub_file)
+            print('bash -c source {}.bashrc'.format(home_dir),file=sub_file)
+            print('conda activate ByeSplitEnv',file=sub_file)
+            print("export PYTHONPATH=/home/llr/cms/ehle/anaconda3/envs/ByeSplitEnv/bin/python", file=sub_file)
+            print('getenv=true', file=sub_file)
+            print('T3Queue=${}'.format(queue), file=sub_file)
+            print('WNTag=el7', file=sub_file)
+            print('+SingulairtyCmd=', file=sub_file)
+            print('include : /opt/exp_soft/cms/t3/t3queue', file=sub_file)
+            print("bash /opt/exp_soft/cms/t3/t3setup", file=sub_file)
+            print("x509userproxy={}".format(proxy), file=sub_file)
+            print("X509_CERT_FILE={}".format(proxy), file=sub_file)
+            print("bash {0}skim_match.sh --batch '{1}' --particle {2} &> skim_match_{3}.log".format(submit_dir, batch_str, particle, i), file=sub_file)
+
+        st=os.stat(sub_file_name)
+        os.chmod(sub_file_name, st.st_mode | 0o744)
+
+def prepare_jobs(param, batches_phot, batches_elec, batches_pion):
+    files_photons = param.files_photons
+    files_electrons = param.files_electrons
+    files_pions = param.files_pions
+
+    data_dir = param.data_dir
+
+    phot_dir=param.phot_out_path
+    elec_dir=param.el_out_path
+    pion_dir=param.pion_out_path
+
+    if not os.path.exists(phot_dir+'configs'):
+        os.makedirs(phot_dir+'configs')
+        os.makedirs(phot_dir+'jobs')
+        os.makedirs(phot_dir+'logs')
+
+        os.makedirs(elec_dir+'configs')
+        os.makedirs(elec_dir+'jobs')
+        os.makedirs(elec_dir+'logs')
+
+    if len(files_pions)>0:
+        os.makedirs(pion_dir+'configs')
+        os.makedirs(pion_dir+'jobs')
+        os.makedirs(pion_dir+'logs')
+
+    prepare_configs(batches_phot, phot_dir)
+    prepare_submit('photon', batches_phot, phot_dir)
+
+    prepare_configs(batches_elec, elec_dir)
+    prepare_submit('electron', batches_elec, elec_dir)
+    if len(files_pions)>0:
+        prepare_configs(batches_pion, pion_dir)
+        prepare_submit('pion', batches_pion, pion_dir)
+    
+    return phot_dir, elec_dir, pion_dir
+
+def launch_jobs(particle, out_dir, batches, queue=queue, proxy=proxy, local=True):
+    if local==True:
+        machine='local'
+    else:
+        machine = "llrt3.in2p3.fr"
 
     if not local:
-        batch_process = subprocess.run([sub_comm, comm, "--batch", batch_str, "--particle", particle])
-    else:
-        batch_process = subprocess.run([comm, "--batch", batch_str, "--particle", particle])
+        print ('\nSending {0} {1} jobs on {2}'.format(len(batches), particle, queue+'@{}'.format(machine)))
+        print ('===============')
+        print("\n")
 
-def path_batches(directory, files_per_batch=10):
-    my_paths = [path for path in os.listdir(directory) if ".root" in path]
-    my_paths = ["{}{}".format(directory, file) for file in my_paths]
+    for i, batch in enumerate(batches):
+        sub_args = []
+        if not local:
+            sub_args.append("-{}".format(queue))
+        sub_file_name = "{0}jobs/skim_match_{1}.sub".format(out_dir, i)
+        sub_args.append(sub_file_name)
 
-    stripped_batches = strip_trail(my_batches(my_paths, files_per_batch))
+        if local:
+            comm = sub_args
+        else:
+            comm = sub_comm+sub_args
+        print(str(datetime.now()), ' '.join(comm))
+        status = subprocess.run(comm)
 
-    return stripped_batches
+def main(parameters_file):
+    import importlib
+    import sys
+    sys.path.append(work_dir)
+    parameters_file=parameters_file.replace("/",".").replace(".py","")
 
-def launch_jobs(phot_files, el_files, queue=queue, proxy=proxy, machine=machine):
-    if not os.path.exists(phot_out_path):
-        # The setup script will create all of the out directories, so if the photon directory isn't there, neither should the others
-        setup_process = subprocess.run(["{}{}setup.sh".format(working_dir,submit_dir)], shell=True)
+    parameters=importlib.import_module(parameters_file)
+    local = parameters.local
+    files_electrons = parameters.files_electrons
+    files_photons = parameters.files_photons
+    files_pions = parameters.files_pions
+    files_per_batch_elec = parameters.files_per_batch_elec
+    files_per_batch_phot = parameters.files_per_batch_phot
+    files_per_batch_pion = parameters.files_per_batch_pion
 
-    # Save full paths to ntuple files and break them into batches (size <=10 files each by default)
-    phot_batches = setup_batches(phot_files)
-    el_batches = setup_batches(el_files)
+    batches_elec = setup_batches(files_electrons, files_per_batch_elec)
+    batches_phot = setup_batches(files_photons, files_per_batch_phot)
+    batches_pion = []
 
-    print ('Sending {0} photon jobs on {1}'.format(len(phot_batches), queue+'@{}'.format(machine)))
-    print ('---------------')
+    if len(files_pions) > 0:
+        batches_pion = setup_batches(files_pions, files_per_batch_pion)
 
-    # Run the skimming step on each batch; the new, skimmed files will be placed in {particle}_out_path/
-    # Ran the first batch locally as a test, so starting from second batch
-    for batch in phot_batches:
-        run_batch("t3skim.sh", batch, "photon")
+    phot_dir, elec_dir, pion_dir = prepare_jobs(parameters, batches_phot, batches_elec, batches_pion)
 
-    print ('Sending {0} electron jobs on {1}'.format(len(el_batches), queue+'@{}'.format(machine)))
-    print ('===============')
+    launch_jobs('photon', phot_dir, batches_phot, local=local)
+    launch_jobs('electron', elec_dir, batches_elec, local=local)
 
-    for batch in el_batches:
-        run_batch("t3skim.sh", batch, "electron")
-
-    skimmed_phot_batches = path_batches(phot_out_path)
-    skimmed_el_batches = path_batches(el_out_path)
-
-    # Create matching directories
-    if not os.path.exists(phot_match_out):
-        os.makedirs(phot_match_out)
-    if not os.path.exists(el_match_out):
-        os.makedirs(el_match_out)
-
-    # Run the matching step on each (skimmed) batch
-    for batch in skimmed_phot_batches:
-        run_batch("match.sh", batch, "photon")
-
-    for batch in skimmed_el_batches:
-        run_batch("match.sh", batch, "electron")
-
-    matched_phots = [path for path in os.listdir(phot_match_out) if ".root" in path]
-    matched_els = [path for path in os.listdir(el_match_out) if ".root" in path]
-
-    # While the skimming and matching step are broken into batches, i.e. original_list = [list_1=[file_1,file_2,...], list_2=[file_i, file_i+1, ...], ...]
-    # The combine step will assume the "batch" is the entire list
-    run_batch("combine.sh",matched_phots,"photon")
-    run_batch("combine.sh",matched_els,"electron")
+    if len(files_pions) > 0:
+        launch_jobs('pion', pion_dir, batches_pion, local=local)
 
 if __name__=='__main__':
-    launch_jobs(phot_files=phot_files, el_files=el_files)
+    parser = optparse.OptionParser()
+    parser.add_option("--cfg", type="string", dest="param_file", help="select the parameter file")
+    (opt, args) = parser.parse_args()
+    parameters=opt.param_file
+    main(parameters)
+

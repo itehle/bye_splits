@@ -9,7 +9,7 @@ import sys
 import getopt
 parent_dir = os.path.abspath(__file__ + 2 * '/..')
 sys.path.insert(0, parent_dir)
-base_data_dir = "/data_CMS/cms/ehle/L1HGCAL"
+base_data_dir = "/data_CMS/cms/ehle/L1HGCAL/"
 
 from pathlib import Path
 import numpy as np
@@ -37,12 +37,11 @@ def matching(event):
         return (cond_a&cond_b)
 
 def create_dataframes(files, algo_trees, gen_tree, reachedEE):
+    if not isinstance(files,list):
+        files = [files]
+
     print('Input file: {}'.format(files), flush=True)
-    # branches_gen = [ 'event', 'genpart_reachedEE', 'genpart_pid', 'genpart_gen',
-    #                  'genpart_exphi', 'genpart_exeta', 'genpart_energy' ]
-    # branches_cl3d = [ 'event', 'cl3d_energy','cl3d_pt','cl3d_eta','cl3d_phi' ]
-    # branches_tc = [ 'event', 'tc_zside', 'tc_energy', 'tc_mipPt', 'tc_pt', 'tc_layer',
-    #                 'tc_x', 'tc_y', 'tc_z', 'tc_phi', 'tc_eta', 'tc_id' ]
+
     branches_gen = [ 'event', 'good_genpart_exphi', 'good_genpart_exeta', 'good_genpart_energy', 'good_genpart_pt' ]
     branches_cl3d = [ 'event', 'good_cl3d_energy','good_cl3d_pt','good_cl3d_eta','good_cl3d_phi' ]
     branches_tc = [ 'event', 'good_tc_energy', 'good_tc_mipPt', 'good_tc_pt', 'good_tc_layer',
@@ -105,6 +104,18 @@ def preprocessing(argv):
         else:
             print("Please specify an input file.")
 
+    if 'photon' in infile:
+        match_dir = base_data_dir+'photon/'
+    elif 'electron' in infile:
+        match_dir = base_data_dir+'electron/'
+    elif 'pion' in infile:
+        match_dir = base_data_dir+'pion/'
+    else:
+        match_dir = base_data_dir+'other/'
+    match_dir+='matched/'
+
+    if not os.path.exists(match_dir):
+        os.makedirs(match_dir)
 
     gen, algo, tc = create_dataframes(infile,
                                       prod_params.algo_trees, prod_params.gen_tree,
@@ -142,13 +153,8 @@ def preprocessing(argv):
         algo_clean[algo_name] = algo_clean[algo_name].join(tc, how='left', rsuffix='_tc')
 
     #save files to savedir in HDF
-
-    #store = pd.HDFStore( Path(prod_params.out_dir) / prod_params.out_name, mode='w')
-    if not os.path.exists(base_data_dir+'/matched'):
-        match_dir = os.makedirs(base_data_dir+'/matched')
-    match_dir = base_data_dir+'/matched'
-    
-    outfile = match_dir+"/matched_"+infile
+    outfile = match_dir+"matched_"+os.path.basename(infile)
+    print("\nWriting to: ", outfile)
 
     store = pd.HDFStore(outfile, mode='w')
     for algo_name, df in algo_clean.items():
