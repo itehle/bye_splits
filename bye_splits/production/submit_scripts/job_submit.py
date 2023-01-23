@@ -79,9 +79,9 @@ def prepare_submit(particle, batches, data_dir):
             print('WNTag=el7', file=sub_file)
             print('+SingulairtyCmd=', file=sub_file)
             print('include : /opt/exp_soft/cms/t3/t3queue', file=sub_file)
-            print("bash /opt/exp_soft/cms/t3/t3setup", file=sub_file)
-            print("x509userproxy={}".format(proxy), file=sub_file)
-            print("X509_CERT_FILE={}".format(proxy), file=sub_file)
+            #print("bash /opt/exp_soft/cms/t3/t3setup", file=sub_file)
+            #print("x509userproxy={}".format(proxy), file=sub_file)
+            print("export X509_CERT_FILE={}".format(proxy), file=sub_file)
             print("bash {0}skim_match.sh --batch '{1}' --particle {2} &> skim_match_{3}.log".format(submit_dir, batch_str, particle, i), file=sub_file)
 
         st=os.stat(sub_file_name)

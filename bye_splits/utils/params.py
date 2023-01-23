@@ -24,6 +24,8 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from subprocess import Popen, PIPE
 import pickle
 
+# Variables
+
 particle = 'electron'
 NbinsRz = 42
 NbinsPhi = 216
@@ -33,6 +35,8 @@ MinPhi = -np.pi
 MaxPhi = +np.pi
 DataFolder = 'data/new_algos'
 assert DataFolder in ('data/new_algos', 'data/tc_shift_studies')
+
+# Dictionaries
 
 base_kw = {
     'NbinsRz': NbinsRz,
@@ -57,6 +61,9 @@ base_kw = {
 
     'Placeholder': np.nan,
 }
+
+# Functions
+############################################################################################################################################
 
 def set_dictionary(adict):
     adict.update(base_kw)
@@ -130,6 +137,8 @@ if pile_up:
                  'pion':     'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple'}
 
     algo_trees = {'Mixedbcstcrealsig4DummyHistomaxxydr015Genmatch': gen_trees}
+
+############################################################################################################################################
 
 match_kw = set_dictionary(
     { 'Files': files,

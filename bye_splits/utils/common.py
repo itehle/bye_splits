@@ -63,6 +63,34 @@ def fill_path(base_path, ext='hdf5', **kw):
     path = 'OutPath' if ext == 'html' else 'BasePath'
     return Path(params.base_kw[path]) / base_path
 
+class DictHelp:
+    def __init__(self, files, algo_template, trees, base=params.base_kw, PU=False):
+        assert isinstance(files, dict)
+        assert isinstance(algo_template, dict)
+        assert isinstance(trees, dict)
+        assert isinstance(base, dict)
+        self.base = base
+        self.files = files
+        self.algo_template = algo_template
+        self.trees = trees
+        self.PU = PU
+
+    def get_algo_trees(self):
+        algo_trees = {}
+        for fe in self.base['FesAlgos']:
+            inner_trees = {}
+            for key, val in self.algo_template.items():
+                inner_trees[key] = val.format(fe=fe)
+            algo_trees[fe] = inner_trees
+
+        return algo_trees
+
+    
+
+    
+
+
+
 class SupressSettingWithCopyWarning:
     """
     Temporarily supress pandas SettingWithCopyWarning.
