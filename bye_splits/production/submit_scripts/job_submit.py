@@ -20,7 +20,7 @@ sub_comm = ["/opt/exp_soft/cms/t3/t3submit"]
 
 home_dir = "/grid_mnt/vol_home/llr/cms/ehle/"
 
-work_dir = "{}git/bye_splits_new/".format(home_dir)
+work_dir = "{}git/bye_splits_final/".format(home_dir)
 submit_dir = "{}bye_splits/production/submit_scripts/".format(work_dir)
 
 data_dir = "/data_CMS/cms/ehle/L1HGCAL/"
@@ -77,10 +77,6 @@ def prepare_submit(particle, batches, data_dir):
             print('getenv=true', file=sub_file)
             print('T3Queue=${}'.format(queue), file=sub_file)
             print('WNTag=el7', file=sub_file)
-            print('+SingulairtyCmd=', file=sub_file)
-            print('include : /opt/exp_soft/cms/t3/t3queue', file=sub_file)
-            #print("bash /opt/exp_soft/cms/t3/t3setup", file=sub_file)
-            #print("x509userproxy={}".format(proxy), file=sub_file)
             print("export X509_CERT_FILE={}".format(proxy), file=sub_file)
             print("bash {0}skim_match.sh --batch '{1}' --particle {2} &> skim_match_{3}.log".format(submit_dir, batch_str, particle, i), file=sub_file)
 

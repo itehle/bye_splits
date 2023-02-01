@@ -153,7 +153,7 @@ def preprocessing(argv):
         algo_clean[algo_name] = algo_clean[algo_name].join(tc, how='left', rsuffix='_tc')
 
     #save files to savedir in HDF
-    outfile = match_dir+"matched_"+os.path.basename(infile)
+    outfile = match_dir+"matched_"+os.path.basename(infile).replace("root", "hdf5")
     print("\nWriting to: ", outfile)
 
     store = pd.HDFStore(outfile, mode='w')
