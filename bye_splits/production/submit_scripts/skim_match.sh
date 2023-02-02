@@ -45,6 +45,7 @@ do
   else
     echo "${PARTICLE} is not currently supported for the --particle argument. The options are 'photon' and 'electron'."
   fi
+  # Match ntuples
   if ! [ -f $matched_file ]; then # Check that matched file doesn't already exist
     python bye_splits/production/new_match.py --infile $skimmed_file
   fi
