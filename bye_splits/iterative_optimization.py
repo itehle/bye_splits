@@ -98,7 +98,7 @@ def process_trigger_cell_geometry_data(region, selection,
         store['data_main'].attrs['doc'] = doc_main
 
 def optimization(pars, **kw):
-    outresen = common.fill_path(kw['OptIn'], sel=pars['sel'], reg=pars['reg'])
+    outresen = str(common.fill_path(kw['OptIn'], sel=pars['sel'], reg=pars['reg'])).replace(str(kw['DataFolder']),"data")
     store_in  = h5py.File(outresen, mode='r')
     #plot_obj = utils.plotter.Plotter(**params.opt_kw)
     mode = 'variance'
@@ -403,16 +403,17 @@ if __name__ == "__main__":
     assert FLAGS.sel in ('splits_only',) or FLAGS.sel.startswith('above_eta_') or FLAGS.sel.startswith('below_eta_')
 
     input_files = params.fill_kw['FillInFiles']
-    simDataPaths = [[os.path.join(params.base_kw['BasePath'], infile) for infile in input_files[key]] for key in input_files.keys()]
+    #input_files = params.files
+
+    '''simDataPaths = [[os.path.join(params.base_kw['BasePath'], infile) for infile in input_files[key]] for key in input_files.keys()]
     simDataPaths = list(itertools.chain(*simDataPaths))
 
-    FLAGS.process = True
+    FLAGS.process = False
     if FLAGS.process:
         for path in simDataPaths:
             params.opt_kw['InFile'] = path
-            breakpoint()
             process_trigger_cell_geometry_data(region=FLAGS.reg,
-                                           selection=FLAGS.sel, **params.opt_kw)
+                                           selection=FLAGS.sel, **params.opt_kw)'''
 
     pars_d = {'sel'           : FLAGS.sel,
               'reg'           : FLAGS.reg,
@@ -424,13 +425,54 @@ if __name__ == "__main__":
     print('Starting iterative parameter {}.'.format(FLAGS.ipar),
           flush=True)
 
-    for path in simDataPaths:
+    geometry_file = "triggergeom_condensed"
+    outcsv = common.fill_path('{}_{}'.format(params.opt_kw['OptCSVOut'],geometry_file), ext='csv', **pars_d)
+    outresen  = common.fill_path('{}_{}'.format(params.opt_kw['OptEnResOut'],geometry_file),  **pars_d)
+    outrespos = common.fill_path('{}_{}'.format(params.opt_kw['OptPosResOut'],geometry_file), **pars_d)
+
+    for file in input_files:
+        with open(outcsv, 'w', newline='') as csvfile, pd.HDFStore(outresen, mode='w') as storeEnRes, pd.HDFStore(outrespos, mode='w') as storePosRes:
+            fieldnames = ['ipar', 'c_loc1', 'c_loc2', 'c_rem1', 'c_rem2',
+                            'locrat1', 'locrat2', 'remrat1', 'remrat2']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            sys.stderr.flush()
+
+            # Set file specific parameters
+            file_pars = common.dict_per_file(params,file)
+
+            tc_map = optimization(pars_d, **file_pars['opt'])
+
+            if not FLAGS.no_fill:
+                print("Starting filling step.")
+                tasks.fill.fill(pars_d, FLAGS.nevents, tc_map, **file_pars['fill'])
+                print("Finished filling step.")
+
+            if not FLAGS.no_smooth:
+                print("Starting smoothing step.")
+                tasks.smooth.smooth(pars_d, **file_pars['smooth'])
+                print("Finished smoothing step.")
+
+            if not FLAGS.no_seed:
+                print("Starting seeding step.")
+                tasks.seed.seed(pars_d, **file_pars['seed'])
+                print("Finished seeding step.")
+
+            if not FLAGS.no_cluster:
+                print("Starting clustering step.")
+                tasks.cluster.cluster(pars_d, **file_pars['cluster'])
+                print("Finished clustering step.")
+
+    
+    '''for path in simDataPaths:
         # Get file addition
         #file = re.split('gen_cl3d_tc_|_ThresholdDummy',path)[1]
         file = re.split('new_algos/|.hdf5',path)[1]
         outcsv = common.fill_path('{}_{}'.format(params.opt_kw['OptCSVOut'],file), ext='csv', **pars_d)
         outresen  = common.fill_path('{}_{}'.format(params.opt_kw['OptEnResOut'],file),  **pars_d)
         outrespos = common.fill_path('{}_{}'.format(params.opt_kw['OptPosResOut'],file), **pars_d)
+        breakpoint()
 
         with open(outcsv, 'w', newline='') as csvfile, pd.HDFStore(outresen, mode='w') as storeEnRes, pd.HDFStore(outrespos, mode='w') as storePosRes:
             fieldnames = ['ipar', 'c_loc1', 'c_loc2', 'c_rem1', 'c_rem2',
@@ -468,7 +510,7 @@ if __name__ == "__main__":
                 print("Finished clustering step.")
 
             # Validation currently failing (specifically line 202 of tasks/validation.py)
-            '''res = tasks.validation.stats_collector(pars_d, **file_pars['validation'])
+            res = tasks.validation.stats_collector(pars_d, **file_pars['validation'])
 
             writer.writerow({fieldnames[0] : FLAGS.ipar,
                              fieldnames[1] : res[0],

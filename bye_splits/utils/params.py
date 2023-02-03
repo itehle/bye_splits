@@ -26,15 +26,24 @@ import pickle
 
 # Variables
 
-particle = 'electron'
+particles = ['electrons', 'photons', 'pions']
+particle = 'photons'
+assert particle in ('electrons', 'photons', 'pions')
 NbinsRz = 42
 NbinsPhi = 216
 MinROverZ = 0.076
 MaxROverZ = 0.58
 MinPhi = -np.pi
 MaxPhi = +np.pi
-DataFolder = 'data/new_algos'
-assert DataFolder in ('data/new_algos', 'data/tc_shift_studies')
+PileUp = "PU0"
+assert PileUp in ('PU0', 'PU200')
+local = False
+if local:   
+    base_dir = "/data_CMS/cms/ehle/L1HGCAL/"
+else:
+    base_dir = "/eos/user/i/iehle/"
+DataFolder = 'data/{}/{}'.format(PileUp, particle)
+#assert DataFolder in ('data/new_algos', 'data/tc_shift_studies', 'data/PU0')
 
 # Dictionaries
 
@@ -52,9 +61,10 @@ base_kw = {
     'IsHCAL': False,
 
     'DataFolder': Path(DataFolder),
-    'FesAlgos': ['ThresholdDummyHistomaxnoareath20'],
-    'BasePath': Path(__file__).parents[2] / DataFolder,
-    'OutPath': Path(__file__).parents[2] / 'out',
+    #'FesAlgos': ['ThresholdDummyHistomaxnoareath20'],
+    'FesAlgos' : ['FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple'],
+    'BasePath': "{}{}".format(base_dir, DataFolder),
+    'OutPath': "{}out".format(base_dir),
 
     'RzBinEdges': np.linspace( MinROverZ, MaxROverZ, num=NbinsRz+1 ),
     'PhiBinEdges': np.linspace( MinPhi, MaxPhi, num=NbinsPhi+1 ),
@@ -84,7 +94,7 @@ for i,coef in enumerate(coefs):
     coef_key = 'coef_'+str(i)
     coef_dict[coef_key] = coef
 
-ntuple_templates = {'photon': 'Floatingpoint{fe}Genclustersntuple/HGCalTriggerNtuple','pion':'hgcalTriggerNtuplizer/HGCalTriggerNtuple'}
+ntuple_templates = {'photons': 'Floatingpoint{fe}Genclustersntuple/HGCalTriggerNtuple','pions':'hgcalTriggerNtuplizer/HGCalTriggerNtuple'}
 algo_trees = {}
 for fe in base_kw['FesAlgos']:
     inner_trees = {}
@@ -112,39 +122,21 @@ def create_out_names(files,trees):
         output_file_names[key] = ['gen_cl3d_tc_{}_{}_with_pt'.format(base_kw['FesAlgos'][0],re.split('.root|/',file)[-2]) for file in files[key]]
     return output_file_names
 
-#files = {'photon': '/data_CMS/cms/alves/L1HGCAL/photon/matched_skim_photon_0PU_bc_stc_hadd.root', 'pion': glob('/data_CMS_upgrade/sauvan/HGCAL/2210_Ehle_clustering-studies/SinglePion_PT0to200/PionGun_Pt0_200_PU0_HLTSummer20ReRECOMiniAOD_2210_clustering-study_v3-29-1/221018_121053/ntuple*.root')}
-files = {'photon': '/data_CMS/cms/ehle/L1HGCAL/photon/matched/matched_skim_photon_0PU_bc_stc_hadd.hdf5', 'electron': '/data_CMS/cms/ehle/L1HGCAL/electron/matched/matched_skim_electron_0PU_bc_stc_hadd.hdf5', 'pion': glob('/data_CMS_upgrade/sauvan/HGCAL/2210_Ehle_clustering-studies/SinglePion_PT0to200/PionGun_Pt0_200_PU0_HLTSummer20ReRECOMiniAOD_2210_clustering-study_v3-29-1/221018_121053/ntuple*.root')}
-gen_trees = {'photon': 'FloatingpointThresholdDummyHistomaxnoareath20Genclustersntuple/HGCalTriggerNtuple', 'pion':'hgcalTriggerNtuplizer/HGCalTriggerNtuple'}
-
-pile_up = False
-get_pu_files = False
-if pile_up:
-    pu_samples = ['DoubleElectron_FlatPt-1To100', 'DoublePhoton_FlatPt-1To100', 'SinglePion_PT0to200']
-    if get_pu_files:
-        #Fill files dictionary with path to files on /dpm...
-        files = {'electron': None, 'photon': None, 'pion': None}
-        common.point_to_root_file(pu_samples, files)
-        outfile = 'dpm_file_paths.pkl'
-        with open(outfile, 'wb') as f:
-            pickle.dump(files, f)
-    else:
-        pu_base = '/data_CMS/cms/ehle/L1HGCAL/skim_'
-        name_ext = '200PU_bc_stc_hadd.root'
-        files = {'photon': pu_base+'photon'+name_ext, 'electron': pu_base+'electron'+name_ext, 'pion': pu_base+'pion'+name_ext}
-        infile = files[particle]
-
-    gen_trees = {'electron': 'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',
-                 'photon':   'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple',
-                 'pion':     'FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple'}
-
-    algo_trees = {'Mixedbcstcrealsig4DummyHistomaxxydr015Genmatch': gen_trees}
+#files = {'photons': '/data_CMS/cms/alves/L1HGCAL/photons/matched_skim_photon_0PU_bc_stc_hadd.root', 'pions': glob('/data_CMS_upgrade/sauvan/HGCAL/2210_Ehle_clustering-studies/SinglePion_PT0to200/PionGun_Pt0_200_PU0_HLTSummer20ReRECOMiniAOD_2210_clustering-study_v3-29-1/221018_121053/ntuple*.root')}
+files = {}
+for part in particles:
+    files[part] = ["{}data/{}/{}/skim_{}_{}_bc_stc_hadd.root".format(base_dir, PileUp, part, part, PileUp)]
+#gen_trees = {'photons': 'FloatingpointThresholdDummyHistomaxnoareath20Genclustersntuple/HGCalTriggerNtuple', 'pions':'hgcalTriggerNtuplizer/HGCalTriggerNtuple'}
+gen_tree = "FloatingpointMixedbcstcrealsig4DummyHistomaxxydr015GenmatchGenclustersntuple/HGCalTriggerNtuple"
+gen_trees = {'photons': gen_tree, 'pions': gen_tree, 'electrons': gen_tree}
 
 ############################################################################################################################################
 
 match_kw = set_dictionary(
     { 'Files': files,
       'GenTrees': gen_trees,
-      'AlgoTrees': algo_trees,
+      #'AlgoTrees': algo_trees,
+      'AlgoTrees': gen_trees,
       'File': None, # The following four values are chosen from their respective dicts in the matching process
       'GenTree': None,
       'AlgoTree': None,
@@ -154,14 +146,11 @@ match_kw = set_dictionary(
       'CoeffAlgos': coef_dict,
       'Threshold': threshold}
 )
-# fill task
-file_name_dict = dict.fromkeys(files.keys(), None)
-for key in file_name_dict:
-    file_name_dict[key] = ["summ_PU200_{}.hdf5".format(key)]
 
+# fill task
 fill_kw = set_dictionary(
-    {#'FillInFiles' : create_out_names(files, match_kw['GenTrees']),
-     'FillInFiles' : file_name_dict,
+    {'FillInFiles' : files[particle],
+     #'FillInFiles' : common.create_fill_names(files),
      'FillIn'      : None, # To be chosen during the fill process
      'FillOut'     : 'fill',
      'FillOutComp' : 'fill_comp',

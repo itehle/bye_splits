@@ -139,10 +139,36 @@ def tc_base_selection(df, region, pos_endcap, range_rz):
     df, subdetCond = get_detector_region_mask(df, region)
     return df, subdetCond
 
+def transform(nested_list):
+    regular_list=[]
+    for ele in nested_list:
+        if type(ele) is list:
+            regular_list.append(ele)
+        else:
+            regular_list.append([ele])
+    return regular_list
+
+def create_algo_trees(template_dict):
+    algo_trees = {}
+    for fe in params.base_kw['FesAlgos']:
+        inner_trees = {}
+        for key, val in template_dict.items():
+            inner_trees[key] = val.format(fe=fe)
+        algo_trees[fe] = inner_trees
+    return algo_trees
+
+def create_fill_names(files):
+    output_file_names = {}
+    for key in files.keys():
+        if isinstance(files[key], str):
+            files[key] = [files[key]]
+        output_file_names[key] = ['gen_cl3d_tc_{}_{}_with_pt'.format(params.base_kw['FesAlgos'][0],re.split('.root|/',file)[-2]) for file in files[key]]
+    return output_file_names
+
 def dict_per_file(pars,file):
     # This will need to be changed eventually
     #addit = re.split('gen_cl3d_tc_|_ThresholdDummy',file)[1]
-    addit = re.split('new_algos/|.hdf5',file)[1]
+    addit = os.path.basename(file).replace(".root","")
 
     file_pars = {'opt': deepcopy(pars.opt_kw),
                  'fill': deepcopy(pars.fill_kw),
@@ -155,7 +181,9 @@ def dict_per_file(pars,file):
     # Optimization pars
     #file_pars['opt']['InFile'] = '{}.hdf5'.format(file)
     file_pars['opt']['InFile'] = file
-    file_pars['opt']['OptIn'] = '{}_{}'.format(pars.opt_kw['OptIn'],addit)
+    #breakpoint()
+    #file_pars['opt']['OptIn'] = '{}_{}'.format(pars.opt_kw['OptIn'],addit)
+    file_pars['opt']['OptIn'] = pars.opt_kw['OptIn']
     file_pars['opt']['OptEnResOut'] = '{}_{}'.format(pars.opt_kw['OptEnResOut'],addit)
     file_pars['opt']['OptPosResOut'] = '{}_{}'.format(pars.opt_kw['OptPosResOut'],addit)
     file_pars['opt']['OptCSVOut'] = '{}_{}'.format(pars.opt_kw['OptCSVOut'],addit)

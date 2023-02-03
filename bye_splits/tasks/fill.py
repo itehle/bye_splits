@@ -14,6 +14,7 @@ import random; random.seed(18)
 import numpy as np
 import pandas as pd
 import h5py
+import uproot
 
 def fill(pars, nevents, tc_map, debug=False, **kwargs):
     """
@@ -24,14 +25,16 @@ def fill(pars, nevents, tc_map, debug=False, **kwargs):
         infill = common.fill_path(kwargs['FillIn'])
         simAlgoFiles[fe] = [ infill ]
 
-    breakpoint()
-    for fe,files in simAlgoFiles.items():
-        name = fe
+    for i, (fe,files) in enumerate(simAlgoFiles.items()):
         dfs = []
         for afile in files:
-            with pd.HDFStore(afile, mode='r') as store:
-                dfs.append(store[name])
-        simAlgoDFs[fe] = pd.concat(dfs)
+            afile = str(afile).replace(".hdf5","")
+            with uproot.open(afile) as store:
+                tree = store[fe]
+                branches = tree.keys()
+                df = tree.arrays(branches, library="pd")
+                dfs.append(df)
+        simAlgoDFs[fe] = dfs[i]
 
     simAlgoNames = sorted(simAlgoDFs.keys())
     if debug:
@@ -48,7 +51,8 @@ def fill(pars, nevents, tc_map, debug=False, **kwargs):
 
         for i,fe in enumerate(kwargs['FesAlgos']):
             df = simAlgoDFs[fe]
-
+            
+            df.columns = [col.replace("good_","") for col in df.keys()]
 
 
             if not pars['sel'].startswith('below_eta_'):
