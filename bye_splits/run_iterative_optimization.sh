@@ -13,11 +13,11 @@ CLUSTER_ALGO="min_distance"
 SEED_WINDOW="1"
 SMOOTH_KERNEL="default"
 declare -a SELECTIONS=( "splits_only" "no_splits" "above_eta_2.7" "below_eta_2.7")
-declare -a REGIONS=( "Si" "ECAL" "HCAL" "MaxShower" "ExcludeMaxShower" )
+declare -a REGIONS=( "Si" "ECAL" "HCAL" "All" "MaxShower" "ExcludeMaxShower" )
 declare -a CLUSTER_ALGOS=( "min_distance" "max_energy" )
 declare -a SMOOTH_KERNELS=( "default" "flat_top" )
-SELECTION="splits_only"
-REGION="Si"
+SELECTION="below_eta_2.7"
+REGION="All"
 
 ### Argument parsing
 HELP_STR="Prints this help message."
@@ -233,7 +233,7 @@ function run_parallel() {
 
 	comm+="$@"
 
-  echo "Running command: $comm"
+  	echo "Running command: $comm"
 
 	[[ ${DRYRUN} -eq 1 ]] && echo ${comm} || ${comm}
 }

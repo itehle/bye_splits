@@ -18,15 +18,19 @@
 yaml-cpp-yaml-cpp-0.7.0/
 data/
 out/
+bye_splits/production/submit_scripts/
 
-# Exec etc files
+
+# Untracked file types, personal files
 *.exe
 *.DS_Store
 *.pyc
 *.o
 *.d
+*.rej
+*.diff
+*.parquet
+*.html
 settings.json
 conda_byesplits.sh
-
-# Test scripts
 dict_testing.py

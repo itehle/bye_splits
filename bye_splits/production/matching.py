@@ -70,19 +70,19 @@ def create_dataframes(files, algo_trees, gen_tree, reachedEE, **options):
 
     df_gen = pd.concat(batches_gen)
     df_tc = pd.concat(batches_tc)
-
+    
     df_algos = {}
     assert len(files)==1 #modify the following block otherwise
     for algo_name, algo_tree in algo_trees.items():
         with uproot.open(filename)[algo_tree] as tree:
             df_algos[algo_name] = tree.arrays(branches_cl3d + ['cl3d_layer_pt'], library='pd')
             df_algos[algo_name].reset_index(inplace=True)
-
+            
             # Trick to expand layers pTs, which is a vector of vector
             newcol = df_algos[algo_name].apply(lambda row: row.cl3d_layer_pt[row.subentry], axis=1)
             df_algos[algo_name]['cl3d_layer_pt'] = newcol
             df_algos[algo_name] = df_algos[algo_name].drop(['subentry', 'entry'], axis=1)
-
+            
             # print(list(chain.from_iterable(tree.arrays(['cl3d_layer_pt'])[b'cl3d_layer_pt'].tolist())))
             # new_column = chain.from_iterable(
             #     tree.arrays(['cl3d_layer_pt'])[b'cl3d_layer_pt'].tolist()
